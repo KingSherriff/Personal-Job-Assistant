@@ -1,7 +1,3 @@
-# auto_question_runner.py
-# Run this after you've added the new summary chunks to your chroma DB
-# and the DB is stored at "./my_vectordb"
-
 import time
 import torch
 import ollama

@@ -1,5 +1,4 @@
 # import os
-import time
 import torch
 import ollama
 import chromadb
@@ -102,15 +101,9 @@ while True:
     question = input("\n> ").strip()
     if not question or question.lower() in ["exit", "quit"]:
         break
-
-    t0 = time.time()
     normalized = normalize_query(question)
     q_emb = embedder.encode([normalized], convert_to_tensor=False).tolist()
-    t1 = time.time()
-
     context = retrieve_context(q_emb)
-    t2 = time.time()
-
     user_message = f"""Question: {question}
 
 Context from Sherriff's portfolio:
@@ -121,10 +114,8 @@ Context from Sherriff's portfolio:
 Answer the question using only the context above."""
 
     answer = ask_llm(SYSTEM_PROMPT, user_message)
-    t3 = time.time()
 
     if is_hallucinating(answer):
         answer = FALLBACK
 
     print(f"\nAssistant: {answer}")
-    print(f"[Timings] Embed: {t1-t0:.2f}s | Retrieve: {t2-t1:.3f}s | LLM: {t3-t2:.2f}s")
