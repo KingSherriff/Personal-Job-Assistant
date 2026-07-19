@@ -10,6 +10,7 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-mpnet-base-v2")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma2:2b")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "my_chunks")
 GITHUB_LINK = os.getenv("GITHUB_LINK", "https://github.com")
+BM25_MIN_SCORE=os.getenv("BM25_MIN_SCORE",1)
 
 SYSTEM_PROMPT = (
     f"You are {CANDIDATE_NAME}'s portfolio assistant. "
@@ -21,18 +22,11 @@ SYSTEM_PROMPT = (
 )
 
 MULTI_QUERY_SPLIT_PROMPT = (
-    """You are a search query rewriter for a recruitment assistant. 
-    Generate exactly 3 distinct search queries based on the user's question to maximize retrieval recall from the candidate's profile.
-
-    **The 3 Queries MUST approach the question from these 3 distinct angles:**
-
-    1. **Conceptual Angle:** How would you ask this question at a high, abstract level? (e.g., "overall reputation", "general capabilities").
-    2. **Role/Tech Angle:** What specific job titles, technical skills, or hard requirements are implied? (e.g., "Scrum Master", "Python expertise").
-    3. **Evidence/Project Angle:** What concrete projects, metrics, or time-bound deliverables would prove the answer? (e.g., "projects delivered on time", "MVP in 2023").
-
-    **Output Rules:**
-    - Output **ONLY** a valid JSON array of 3 strings. No explanations, no markdown.
-    - Queries must be 5 to 15 words long. No questions marks. Use declarative statements."""
+    """Rewrite the user's question into 3 distinct search queries about the candidate.
+    Rules:
+    - Every query MUST mention 'the candidate'.
+    - Cover different angles: one abstract, one role-specific, one project-specific.
+    - Output ONLY a JSON array of 3 strings. No explanations."""
 )
 
 FALLBACK = (
@@ -64,3 +58,21 @@ HALLUCINATION_SIGNALS = [
     "i don't have access",
     "based on provided information"
 ]
+
+PRONOUNS = {
+    r"how many years": f"how many years of experience does {CANDIDATE_NAME} have",
+    r"does he": f"does {CANDIDATE_NAME}",
+    r"is he": f"is {CANDIDATE_NAME}",
+    r"was he": f"was {CANDIDATE_NAME}",
+    r"has he": f"has {CANDIDATE_NAME}",
+    r"have you": f"has {CANDIDATE_NAME}",
+    r"did he": f"did {CANDIDATE_NAME}",
+    r"can he": f"can {CANDIDATE_NAME}",
+    r"would he": f"would {CANDIDATE_NAME}",
+    r"are you": f"is {CANDIDATE_NAME}",
+    r"his": f"{CANDIDATE_NAME}'s",
+    r"your": f"{CANDIDATE_NAME}'s",
+    r"the candidate": CANDIDATE_NAME,
+    r"he|him|himself": CANDIDATE_NAME,
+    r"you": CANDIDATE_NAME,
+}
