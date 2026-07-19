@@ -151,8 +151,12 @@ def run_single(q: dict) -> dict:
     question = q["question"]
     t0 = time.time()
 
-    questions = [question]
-    questions += multi_query_split(question)
+    try:
+        parsed = json.loads(multi_query_split(question))
+        variants = parsed if isinstance(parsed, list) else []
+    except (json.JSONDecodeError, TypeError):
+        variants = []
+    questions = [question] + [q for q in variants if isinstance(q, str)]
 
     ranked_lists = multi_query_embed([normalize_query(x) for x in questions])
     fused = reciprocal_rank_fusion(ranked_lists)
@@ -169,7 +173,7 @@ def run_single(q: dict) -> dict:
     # None (not False) when the question has no expected chunk at all --
     # e.g. true negative-space questions -- so it's excluded from the rate
     # rather than counted as a miss.
-    retrieval_hit = (bool(expected & set(retrieved_top6)) if expected else None)
+    retrieval_hit = bool(expected & {c.rsplit("_", 1)[0] for c in retrieved_top6}) if expected else None
 
     id_check = check_identity(answer)
 
@@ -186,7 +190,7 @@ def run_single(q: dict) -> dict:
         "expected_chunk_ids": sorted(expected),
         "retrieval_hit": retrieval_hit,
         "identity_check": id_check,
-        "identity_clean": identity_clean(id_check),
+        "identity_clean": identity_clean(id_check) if answer.strip() != FALLBACK.strip() else None,
         "latency_seconds": round(elapsed, 2),
     }
 

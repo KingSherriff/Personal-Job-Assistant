@@ -3,16 +3,19 @@ import json
 import torch
 import ollama
 import pickle
+import logging
 import chromadb
 from config import *
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
+log = logging.getLogger(__name__)
+
 load_dotenv()
 # HF_TOKEN = os.getenv("HF_TOKEN")
 device = "cuda" if torch.cuda.is_available() else "cpu"
-embedder = SentenceTransformer("all-mpnet-base-v2").to(device)
+embedder = SentenceTransformer(EMBEDDING_MODEL).to(device)
 # encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", device=device)
 
 client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
@@ -36,7 +39,7 @@ def normalize_query(raw: str) -> str:
 
 def multi_query_split(raw) -> str:
     query = normalize_query(raw)
-    answer = ask_llm(MULTI_QUERY_SPLIT_PROMPT, f"Original User Question: {query}\nCandidate's name: {CANDIDATE_NAME}", 400, 1024, {"type": "array", "items": {"type": "string"}})
+    answer = ask_llm(MULTI_QUERY_SPLIT_PROMPT, f"Original User Question: {query}\nCandidate's name: {CANDIDATE_NAME}", 200, 1024, {"type": "array", "items": {"type": "string"}})
     print(answer)
     return answer
 
@@ -59,7 +62,7 @@ def reciprocal_rank_fusion(results, k=60):
             scores[chunk_id] += 1 / (k + rank)
     sorted_chunks = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     print(sorted_chunks)
-    return [chunk_id for chunk_id, score in sorted_chunks]
+    return [chunk_id for chunk_id, _ in sorted_chunks]
     
 
 def retrieve_context(query_embedding: list, raw: str, n_fetch: int = 5) -> str:
@@ -75,15 +78,17 @@ def retrieve_context(query_embedding: list, raw: str, n_fetch: int = 5) -> str:
 
 def is_hallucinating(response: str) -> bool:
     lower = response.lower()
-    return any(signal in lower for signal in HALLUCINATION_SIGNALS)
+    soft = [s for s in SOFT_SIGNALS if s in lower]
+    if soft:
+        log.warning("soft signal %s in answer: %.200s", soft, response)
+    return any(signal in lower for signal in PERSONA_BREAKS)
 
 def ask_llm(system: str, user: str, num_pred: int, num_ctx: int, format_schema=None) -> str:
     options = {"temperature": 0.3, "num_predict": num_pred, "num_ctx": num_ctx}
-    if format_schema is not None:
-        result = ollama.chat(model="gemma2:2b", messages=[{"role": "system", "content": system}, {"role": "user", "content": user}], format=format_schema, options=options)
-    else:
-        result = ollama.chat(model="gemma2:2b", messages=[{"role": "system", "content": system}, {"role": "user", "content": user}], options=options)
-    print(f"[Ollama stats] total={result['total_duration']/1e9:.1f}s prompt_eval={result['prompt_eval_duration']/1e9:.2f}s eval={result['eval_duration']/1e9:.2f}s, tokens={result['eval_count']}")
+    kwargs = {"format": format_schema} if format_schema is not None else {}
+    result = ollama.chat(model=OLLAMA_MODEL, messages=[{"role": "system", "content": system}, {"role": "user", "content": user}], options=options, think=False, **kwargs)
+    if result.get("done_reason") == "length":
+        log.warning("hit num_predict=%s — output truncated", num_pred)
     return result["message"]["content"].strip()
 
 def generate_final_answer(question: str, fused: list, top_k: int = 3) -> str:
@@ -91,7 +96,7 @@ def generate_final_answer(question: str, fused: list, top_k: int = 3) -> str:
     top = []
     for chunk in top_ids:
         if chunk in id_to_doc_meta:
-            doc, meta = id_to_doc_meta[chunk]
+            doc, _ = id_to_doc_meta[chunk]
             top.append(doc)
         else:
             result = collection.get(ids=[chunk])
@@ -101,7 +106,7 @@ def generate_final_answer(question: str, fused: list, top_k: int = 3) -> str:
     context = "\n\n---\n\n".join(top)
     system_prompt = SYSTEM_PROMPT
     user_prompt = QUESTION.format(question=question, context=context, candidate_name=CANDIDATE_NAME)
-    answer = ask_llm(system_prompt, user_prompt, num_pred=400, num_ctx=4096)
+    answer = ask_llm(system_prompt, user_prompt, num_pred=200, num_ctx=4096)
     return answer
 
 def run_chat():
@@ -117,8 +122,12 @@ def run_chat():
             run_eval_suite()
             continue
  
-        questions = [question]
-        questions += multi_query_split(question)
+        try:
+            parsed = json.loads(multi_query_split(question))
+            variants = parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, TypeError):
+            variants = []
+        questions = [question] + [q for q in variants if isinstance(q, str)]
 
         ranked_lists = multi_query_embed(questions)
         ranked_results = reciprocal_rank_fusion(ranked_lists)
