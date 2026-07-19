@@ -14,7 +14,7 @@ def normalize_query(raw, state) -> str:
 
 def multi_query_split(raw, state) -> str:
     query = normalize_query(raw, state)
-    answer = ask_llm(state["config"]["MULTI_QUERY_SPLIT_PROMPT"], f"Original User Question: {query}\nCandidate's name: {state['config']['CANDIDATE_NAME']}", 500, 8192, state, {"type": "array", "items": {"type": "string"}})
+    answer = ask_llm(state["config"]["MULTI_QUERY_SPLIT_PROMPT"], f"Original User Question: {query}\nCandidate's name: {state['config']['CANDIDATE_NAME']}", 200, 2048, state, {"type": "array", "items": {"type": "string"}})
     return answer
 
 def multi_query_embed(questions, state) -> list:
@@ -65,7 +65,7 @@ def ask_llm(system, user, num_pred, num_ctx, state, format_schema=None) -> str:
         log.warning("hit num_predict=%s — output truncated", num_pred)
     return result["message"]["content"].strip()
 
-def generate_final_answer(question, fused, state, top_k = 5) -> str:
+def generate_final_answer(question, fused, state, top_k = 3) -> str:
     top_ids = fused[:top_k]
     top = []
     for chunk in top_ids:
@@ -79,7 +79,7 @@ def generate_final_answer(question, fused, state, top_k = 5) -> str:
 
     context = "\n\n---\n\n".join(top)
     user_prompt = state["config"]["QUESTION"].format(question=question, context=context, candidate_name=state["config"]["CANDIDATE_NAME"])
-    answer = ask_llm(state["config"]["SYSTEM_PROMPT"], user_prompt, num_pred=500, num_ctx=8192, state=state)
+    answer = ask_llm(state["config"]["SYSTEM_PROMPT"], user_prompt, num_pred=200, num_ctx=2048, state=state)
     return answer
 
 def get_answer(question, state) -> str:
