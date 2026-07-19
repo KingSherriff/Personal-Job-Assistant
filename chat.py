@@ -126,4 +126,5 @@ def run_chat():
             answer = FALLBACK
         print(f"\nAssistant: {answer}")
 
-run_chat()
+if __name__ == "__main__":
+    run_chat()
