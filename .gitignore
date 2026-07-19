@@ -13,5 +13,7 @@ wheels/
 *.json
 *.pkl
 
+my_vectordb/
+
 # Secrets
 .env

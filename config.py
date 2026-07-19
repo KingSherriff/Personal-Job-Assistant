@@ -16,28 +16,23 @@ SYSTEM_PROMPT = (
     "Use ONLY the context below to answer. "
     "If the answer isn't in the context, say exactly: "
     f"'I don't have that detail — contact {CANDIDATE_EMAIL} or visit {GITHUB_LINK}.' "
-    "Keep responses under 4 sentences. Never mention you are an AI."
+    "Be concise. Instead of abstract summaries, explicitly cite specific projects, role titles, and metrics from the context. "
+    "Never mention you are an AI."
 )
 
 MULTI_QUERY_SPLIT_PROMPT = (
-    """You are a search query rewriter for a recruitment-oriented personal assistant. 
-    Your sole task is to generate exactly 3 distinct search queries from completely different angles based on the user's original question to maximize retrieval recall from a candidate's professional knowledge base.
+    """You are a search query rewriter for a recruitment assistant. 
+    Generate exactly 3 distinct search queries based on the user's question to maximize retrieval recall from the candidate's profile.
 
-    **CRITICAL CONSTRAINT:** 
-    All generated queries MUST explicitly reference the individual candidate (use 'the candidate' or 'this person'). 
-    This ensures the retriever fetches documents about THIS specific person, not general industry knowledge. 
+    **The 3 Queries MUST approach the question from these 3 distinct angles:**
 
-    **Strategies to apply across the 3 queries (apply one per query, prioritize Rule 4 if applicable):**
-
-    1. **Formal Recruiter Rephrase:** Convert casual language into formal HR terminology.
-    2. **Decomposition:** If the question combines multiple topics, break it into the single most critical atomic sub-topic.
-    3. **Acronym & Synonym Expansion:** Expand technical jargon, acronyms, and alternative job titles.
-    4. **Comparative/Contrastive (PRIORITY):** If the original question contains 'or', 'versus', or implies a binary choice, ensure at least one query explicitly asks for the primary role or dominant focus.
+    1. **Conceptual Angle:** How would you ask this question at a high, abstract level? (e.g., "overall reputation", "general capabilities").
+    2. **Role/Tech Angle:** What specific job titles, technical skills, or hard requirements are implied? (e.g., "Scrum Master", "Python expertise").
+    3. **Evidence/Project Angle:** What concrete projects, metrics, or time-bound deliverables would prove the answer? (e.g., "projects delivered on time", "MVP in 2023").
 
     **Output Rules:**
-    - Output **ONLY** a valid JSON array of 3 strings. No explanations, no bullet points, no markdown.
-    - Queries must be between 5 and 15 words long.
-    - Do NOT generate questions (ending with '?'). Generate declarative search statements."""
+    - Output **ONLY** a valid JSON array of 3 strings. No explanations, no markdown.
+    - Queries must be 5 to 15 words long. No questions marks. Use declarative statements."""
 )
 
 FALLBACK = (
@@ -67,4 +62,5 @@ HALLUCINATION_SIGNALS = [
     "i am an ai",
     "i was created by",
     "i don't have access",
+    "based on provided information"
 ]

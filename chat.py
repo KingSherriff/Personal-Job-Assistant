@@ -36,7 +36,7 @@ def normalize_query(raw: str) -> str:
 def multi_query_split(raw: str) -> str:
     query = normalize_query(raw)
     answer = ask_llm(MULTI_QUERY_SPLIT_PROMPT, f"Original User Question: {query}\nCandidate's name: {CANDIDATE_NAME}", 400, 1024, {"type": "array", "items": {"type": "string"}})
-    # print(answer)
+    print(answer)
     return answer
 
 def multi_query_embed(questions) -> list:
@@ -54,7 +54,7 @@ def reciprocal_rank_fusion(results, k=60):
                 scores[chunk_id] = 0
             scores[chunk_id] += 1 / (k + rank)
     sorted_chunks = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    # print(sorted_chunks)
+    print(sorted_chunks)
     return [chunk_id for chunk_id, score in sorted_chunks]
     
 
