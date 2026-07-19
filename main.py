@@ -31,7 +31,7 @@ def keyword_rank(data):
     print("BM25 model saved")
 
 
-with open("data_v3.json", "r", encoding="utf-8") as f:
+with open("data.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -52,5 +52,5 @@ ids = [f"{item['metadata']['chunk_id']}_{i}" for i, item in enumerate(data)]
 print(f"Generating {len(contents)} embeddings")
 embeddings = model.encode(contents, convert_to_tensor=False).tolist()
 collection.add(ids=ids, documents=contents, embeddings=embeddings, metadatas=metadatas)
-# keyword_rank(contents)
+keyword_rank(contents)
 print(f"Added {len(ids)} chunks.")
