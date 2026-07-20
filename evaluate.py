@@ -40,7 +40,7 @@ from pathlib import Path
 
 # Import the REAL pipeline. Deliberately NOT reimplemented here, so a change
 # to retrieval or generation in chat.py is exactly what gets measured.
-from chat import (
+from chat_test import (
     normalize_query,
     multi_query_split,
     multi_query_embed,
@@ -208,7 +208,11 @@ def run_eval_suite(questions_path: Path = QUESTIONS_PATH, save: bool = True, ver
         sum(r["retrieval_hit"] for r in scored_retrieval) / len(scored_retrieval)
         if scored_retrieval else None
     )
-    identity_clean_rate = sum(r["identity_clean"] for r in results) / len(results)
+    scored_identity = [r for r in results if r["identity_clean"] is not None]
+    identity_clean_rate = (
+        sum(r["identity_clean"] for r in scored_identity) / len(scored_identity)
+        if scored_identity else None
+    )
     fallback_rate = sum(r["fell_back_to_fallback"] for r in results) / len(results)
     avg_latency = sum(r["latency_seconds"] for r in results) / len(results)
 

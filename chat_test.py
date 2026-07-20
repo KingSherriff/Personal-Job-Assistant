@@ -91,7 +91,7 @@ def ask_llm(system: str, user: str, num_pred: int, num_ctx: int, format_schema=N
         log.warning("hit num_predict=%s — output truncated", num_pred)
     return result["message"]["content"].strip()
 
-def generate_final_answer(question: str, fused: list, top_k: int = 3) -> str:
+def generate_final_answer(question: str, fused: list, top_k: int = 5) -> str:
     top_ids = fused[:top_k]
     top = []
     for chunk in top_ids:
