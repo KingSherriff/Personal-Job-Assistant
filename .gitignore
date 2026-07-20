@@ -14,6 +14,7 @@ wheels/
 *.pkl
 
 my_vectordb/
+./modal_app_testing.py
 
 # Secrets
 .env
