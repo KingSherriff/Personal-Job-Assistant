@@ -93,6 +93,7 @@ CHROMA_SETTINGS = Settings(anonymized_telemetry=False)
     volumes={VOLUME_PATH: volume},
     secrets=[secret],
     timeout=60 * 30,
+    cpu=4.0,
 )
 def index():
     import json
@@ -123,7 +124,9 @@ def index():
 
     model = SentenceTransformer(EMBEDDING_MODEL)
     print(f"Embedding {len(contents)} chunks with {EMBEDDING_MODEL}")
+    te = time.perf_counter()
     embeddings = model.encode(contents, convert_to_tensor=False).tolist()
+    print(f"[timing] encode: {time.perf_counter()-te:.1f}s")
     B = 1000
     for i in range(0, len(ids), B):
         collection.add(
